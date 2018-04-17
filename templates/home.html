@@ -1,0 +1,17 @@
+{% extends "layout.html" %}
+{% block body %}
+    <script>
+        function logout() {
+            location.replace("/logout");
+        }
+    </script>
+    <div class="container">
+        <div class="jumbotron">
+            {% if current_user.is_authenticated %}
+            <h2>Hi {{ current_user.username }}!</h2>
+            {% endif %}
+            <p>Example Use Flask</p>
+        </div>
+        <button type="button" onclick="logout();" class="btn btn-success"> Logout</button>
+    </div>
+{% endblock %}
