@@ -1,8 +1,11 @@
 from flask import Flask, request, abort, redirect, Response, url_for, render_template, flash
 from flask_login import LoginManager, login_required, UserMixin, login_user, logout_user, current_user
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.exc import IntegrityError 
+from errors import UserDuplicate
 import requests
 import json
+import logging
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret_key'
@@ -19,7 +22,7 @@ login_manager.init_app(app)
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    password = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(120), nullable=False)
 
     def __repr__(self):
         return '<User %r>' % self.username
@@ -32,8 +35,13 @@ class User(db.Model, UserMixin):
         return result
 
     def save_user(self):
-        db.session.add(self)
-        db.session.commit()
+        try:
+            db.session.add(self)
+            db.session.commit()
+        except IntegrityError as e :
+            logging.debug("username duplicated when create User!")
+            raise UserDuplicate
+             
 
     def get_id(self):
         return self.username 
@@ -86,17 +94,16 @@ def register():
         username = request.form['username']
         password = request.form['password']
         new_user = User(username=username, password=password)
-        new_user.save_user()
+        try:
+            new_user.save_user()
+        except UserDuplicate as e:
+            error_message = e.messages
+            flash(error_message, 'errors')
+            return render_template("register.html")
+
         return render_template("login.html")
     else:
-        return Response('''
-            <h2>Register From</h2>
-            <form action="" method="post">
-            <p><input type=text name=username placeholder="Enter username">
-            <p><input type=password name=password placeholder="Enter password">
-            <p><input type=submit value=Login>
-            </form>
-        ''')
+        return render_template("register.html")
 
 # handle login failed
 @app.errorhandler(401)
