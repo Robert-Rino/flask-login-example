@@ -37,3 +37,6 @@ env_linelogin/
 
 # Editors
 .vscode/
+
+# Mac file system
+*/.DS_Store
